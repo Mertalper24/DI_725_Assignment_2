@@ -131,53 +131,6 @@ for epoch in range(num_epochs):
         }, checkpoint_path)
         print(f"Saved checkpoint: {checkpoint_path}")
 
-# Evaluation function to calculate mAP
-def evaluate_model(model, dataloader, processor):
-    model.eval()
-    all_preds = []
-    all_targets = []
-    
-    with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Evaluating"):
-            pixel_values = batch['pixel_values'].to(device)
-            labels = batch['labels']  # Keep labels on CPU for now
-            
-            # Forward pass
-            outputs = model(pixel_values=pixel_values)
-            
-            # Process predictions
-            target_sizes = torch.tensor([[img.shape[-2], img.shape[-1]] for img in pixel_values])
-            results = processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.5)
-            
-            for i, (result, label) in enumerate(zip(results, labels)):
-                pred_boxes = result["boxes"].cpu()
-                pred_labels = result["labels"].cpu()
-                pred_scores = result["scores"].cpu()
-                
-                # Get ground truth
-                gt_boxes = label["boxes"]
-                gt_labels = label["labels"]
-                
-                all_preds.append({
-                    "boxes": pred_boxes,
-                    "labels": pred_labels,
-                    "scores": pred_scores
-                })
-                
-                all_targets.append({
-                    "boxes": gt_boxes,
-                    "labels": gt_labels
-                })
-    
-    # Calculate mAP (this is a simplified version, you might want to use a library like pycocotools)
-    # For a complete implementation, consider using the COCO API evaluation
-    
-    return all_preds, all_targets
-
-# Run evaluation after training
-print("Evaluating model...")
-all_preds, all_targets = evaluate_model(model, val_dataloader, processor)
-
 # Save the final model
 final_model_path = "checkpoints/detr_final_model.pth"
 torch.save(model.state_dict(), final_model_path)
